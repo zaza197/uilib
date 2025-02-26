@@ -1,4 +1,4 @@
--- NeverLose Style UI Library
+-- NeverLose Style UI Library with Moveable Window
 local UI = {}
 
 -- Utility function for creating rounded corners
@@ -43,6 +43,32 @@ function UI:CreateWindow(title, size, position)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = titleBar
+
+    -- Implement drag functionality
+    local dragging = false
+    local dragStart = Vector3.new()
+    local startPos = window.Position
+
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = window.Position
+        end
+    end)
+
+    titleBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging then
+            local delta = input.Position - dragStart
+            window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 
     return window, screenGui
 end
