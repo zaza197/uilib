@@ -1,18 +1,7 @@
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 
-local UILibrary = {}
-UILibrary.__index = UILibrary
-
-function UILibrary.new()
-    local self = setmetatable({}, UILibrary)
-    self.Windows = {}
-    return self
-end
-
-function UILibrary:CreateWindow(settings)
+function library:CreateWindow(settings)
     local window = {}
     window.Name = settings.Name or "Window"
     window.Tabs = {}
@@ -22,8 +11,8 @@ function UILibrary:CreateWindow(settings)
     screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 500, 0, 400)
-    mainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)
+    mainFrame.Size = settings.Size or UDim2.new(0, 500, 0, 400)
+    mainFrame.Position = settings.Position or UDim2.new(0.5, -250, 0.5, -200)
     mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     mainFrame.Parent = screenGui
 
@@ -39,6 +28,38 @@ function UILibrary:CreateWindow(settings)
     title.Font = Enum.Font.SourceSans
     title.TextSize = 18
     title.Parent = topBar
+
+    -- Dragging functionality
+    local dragging = false
+    local dragStartPos
+    local windowStartPos
+
+    topBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStartPos = Vector2.new(input.Position.X, input.Position.Y)
+            windowStartPos = mainFrame.Position
+        end
+    end)
+
+    topBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mousePos = Vector2.new(input.Position.X, input.Position.Y)
+            local delta = mousePos - dragStartPos
+            mainFrame.Position = UDim2.new(
+                windowStartPos.X.Scale,
+                windowStartPos.X.Offset + delta.X,
+                windowStartPos.Y.Scale,
+                windowStartPos.Y.Offset + delta.Y
+            )
+        end
+    end)
 
     -- Function to create tabs
     function window:CreateTab(tabName)
@@ -85,24 +106,6 @@ function UILibrary:CreateWindow(settings)
             end)
         end
 
-        -- Function to create a toggle in the tab
-        function tab:CreateToggle(toggleSettings)
-            local toggle = Instance.new("TextButton")
-            toggle.Text = toggleSettings.Name
-            toggle.Size = UDim2.new(0, 150, 0, 30)
-            toggle.Position = UDim2.new(0, 10, 0, 10 + (#tab:GetChildren() * 40))
-            toggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-            toggle.TextColor3 = Color3.fromRGB(240, 240, 240)
-            toggle.Parent = tabFrame
-
-            local toggleState = toggleSettings.CurrentValue or false
-
-            toggle.MouseButton1Click:Connect(function()
-                toggleState = not toggleState
-                toggleSettings.Callback(toggleState)
-            end)
-        end
-
         -- Add the tab to the window
         table.insert(window.Tabs, {Name = tabName, Frame = tabFrame})
         return tab
@@ -112,5 +115,3 @@ function UILibrary:CreateWindow(settings)
     table.insert(self.Windows, window)
     return window
 end
-
-return UILibrary
